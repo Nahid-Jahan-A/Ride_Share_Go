@@ -952,6 +952,68 @@ class MockData {
     ),
   };
 
+  // ============== HELPER METHODS ==============
+
+  /// Get trips for a specific passenger
+  static List<Trip> getTripsForPassenger(String passengerId) {
+    return trips.where((trip) => trip.passengerId == passengerId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Get trips for a specific driver
+  static List<Trip> getTripsForDriver(String driverId) {
+    return trips.where((trip) => trip.driverId == driverId).toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Get wallet for a specific user
+  static Wallet? getWalletForUser(String userId) {
+    return wallets.where((w) => w.ownerId == userId).firstOrNull;
+  }
+
+  /// Get transactions for a specific user
+  static List<MockWalletTransaction> getTransactionsForUser(String userId) {
+    final wallet = getWalletForUser(userId);
+    if (wallet == null) return [];
+
+    // Convert domain transactions to mock transactions
+    return transactions
+        .where((t) => t.walletId == wallet.id)
+        .map((t) => MockWalletTransaction(
+              id: t.id,
+              walletId: t.walletId,
+              type: t.amount > 0 ? 'credit' : 'debit',
+              amount: t.amount.abs(),
+              description: t.description,
+              status: t.status.toString().split('.').last,
+              createdAt: t.createdAt,
+            ))
+        .toList()
+      ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
+  }
+
+  /// Get payment methods for a specific user
+  static List<MockPaymentMethod> getPaymentMethodsForUser(String userId) {
+    return paymentMethods
+        .where((pm) => pm.userId == userId)
+        .map((pm) => MockPaymentMethod(
+              id: pm.id,
+              userId: pm.userId,
+              type: pm.type.toString().split('.').last,
+              last4: pm.last4,
+              brand: pm.brand,
+              expiryMonth: pm.expiryMonth,
+              expiryYear: pm.expiryYear,
+              isDefault: pm.isDefault,
+              displayName: pm.type == PaymentMethodType.wallet
+                  ? 'Wallet Balance'
+                  : pm.type == PaymentMethodType.bankAccount
+                      ? 'Bank ****${pm.last4}'
+                      : '${pm.brand} ****${pm.last4}',
+            ))
+        .toList();
+  }
+
   // ============== DEFAULT CREDENTIALS ==============
 
   static const defaultPassengerPhone = '+1234567890';
@@ -987,4 +1049,50 @@ class PromoCode {
     final discount = fare * (discountPercent / 100);
     return discount > maxDiscount ? maxDiscount : discount;
   }
+}
+
+/// Mock wallet transaction for UI display
+class MockWalletTransaction {
+  final String id;
+  final String walletId;
+  final String type; // 'credit' or 'debit'
+  final double amount;
+  final String description;
+  final String status;
+  final DateTime createdAt;
+
+  const MockWalletTransaction({
+    required this.id,
+    required this.walletId,
+    required this.type,
+    required this.amount,
+    required this.description,
+    required this.status,
+    required this.createdAt,
+  });
+}
+
+/// Mock payment method for UI display
+class MockPaymentMethod {
+  final String id;
+  final String userId;
+  final String type; // 'card', 'wallet', 'bankAccount'
+  final String? last4;
+  final String? brand;
+  final String? expiryMonth;
+  final String? expiryYear;
+  final bool isDefault;
+  final String displayName;
+
+  const MockPaymentMethod({
+    required this.id,
+    required this.userId,
+    required this.type,
+    this.last4,
+    this.brand,
+    this.expiryMonth,
+    this.expiryYear,
+    required this.isDefault,
+    required this.displayName,
+  });
 }
